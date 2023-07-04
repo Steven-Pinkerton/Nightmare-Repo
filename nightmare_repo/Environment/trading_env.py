@@ -1,4 +1,5 @@
 from data_preprocessing import preprocess_data, generate_indicators
+from indicators import INDICATORS
 
 class TradingEnvironment:
     def __init__(self, initial_cash_balance=10000.0, transaction_cost=0.01, data_source='russell_2000_daily.csv'):
@@ -14,15 +15,26 @@ class TradingEnvironment:
 
         # Initializing the state
         self.state = self.initialize_state()
+        
+        # List of chosen indicators
+        self.chosen_indicators = []
+        
+        # List of all possible indicators and their default parameters
+        self.all_indicators = {
+            'rsi': {'timeperiod': 14},
+            'sma': {'timeperiod': 30},
+            'ema': {'timeperiod': 15},
+            'macd': {'fastperiod': 12, 'slowperiod': 26, 'signalperiod': 9},
+            'force_index': {'timeperiod': 13},
+            #...
+        }
 
         # Define the action space
         self.action_space = self.define_action_space()
 
     def load_market_data(self, data_source):
-        # Load the market data from a file or a database
-        # Return it as a pandas DataFrame
         data = preprocess_data(data_source)
-        data = generate_indicators(data)
+        self.calculate_indicators(self.all_indicators)
         return data
 
     def initialize_state(self):
@@ -252,16 +264,11 @@ class TradingEnvironment:
             'Total Trades': self.calculate_total_trades()  # This needs more implementation details
         }
 
-    def update_indicator_settings(self, action):
-        # Here we're assuming that the 'Change Indicator Settings' action modifies the periods of the moving averages
-        # The action is a dictionary with structure {'SMA': 1, 'EMA': -1}, where positive numbers mean increase, and negative numbers mean decrease
-        if 'Change Indicator Settings' in action:
-            for indicator, change in action['Change Indicator Settings'].items():
-                self.indicator_settings[indicator] += change
+    def update_indicator_settings(self, indicator, new_settings):
+        # Update the parameters of the chosen indicators
+        if indicator in self.chosen_indicators:
+            self.all_indicators[indicator].update(new_settings)
                 
-    def calculate_portfolio_value(self):
-        return sum(self.market_state[symbol] * amount for symbol, amount in self.portfolio.items())
-    
     def calculate_portfolio_value(self):
         return sum(self.market_state[symbol] * amount for symbol, amount in self.portfolio.items())
 
@@ -279,3 +286,39 @@ class TradingEnvironment:
     def calculate_total_trades(self):
         return self.total_trades
 
+    def choose_indicators(self, indicators):
+        # Select the indicators that the agent wants to use
+        for indicator in indicators:
+            if indicator in self.all_indicators:
+                self.chosen_indicators.append(indicator)
+   
+    def calculate_indicators(self, indicators):
+        """
+        Calculate the specified indicators and add them to the market data.
+        Args:
+        indicators (dict): A dictionary where the keys are the names of the indicators 
+                           to calculate and the values are the parameters for the calculation.
+        Returns:
+        None
+        """
+        for name, params in indicators.items():
+            indicator = INDICATORS.get(name)
+
+            if indicator:
+                # Get the function and parameter names for this indicator
+                func = indicator['func']
+                param_names = indicator['params']
+
+                # Create a dictionary of parameter values from the input indicators
+                func_params = {name: params.get(name) for name in param_names}
+
+                # Calculate the indicator and update the market data
+                self.market_data = func(self.market_data, **func_params)
+            else:
+                print(f"Warning: Indicator '{name}' is not defined. Skipping.")
+
+        return None
+
+    def _calculate_indicator_values(self):
+        for indicator, params in INDICATORS.items():
+            self.indicator_values[indicator] = params['func'](self.dataframe, **params)

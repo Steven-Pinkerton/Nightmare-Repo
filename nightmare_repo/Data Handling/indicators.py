@@ -1,3 +1,48 @@
+INDICATORS = {
+    'sma': {'func': calculate_sma, 'params': ['period']},
+    'rsi': {'func': calculate_rsi, 'params': ['period']},
+    'bbands': {'func': calculate_bbands, 'params': ['period']},
+    'macd': {'func': calculate_macd, 'params': ['fastperiod', 'slowperiod', 'signalperiod']},
+    'psar': {'func': calculate_psar, 'params': ['acceleration', 'maximum']},
+    'trange': {'func': calculate_trange, 'params': []},
+    'wma': {'func': calculate_wma, 'params': ['period']},
+    'ema': {'func': calculate_ema, 'params': ['period']},
+    'aroon': {'func': calculate_aroon, 'params': ['period']},
+    'atr': {'func': calculate_atr, 'params': ['period']},
+    'ad': {'func': calculate_ad, 'params': []},
+    'adx': {'func': calculate_adx, 'params': ['period']},
+    'ichimoku': {'func': calculate_ichimoku, 'params': []},
+    'atr_trailing_stops': {'func': calculate_atr_trailing_stops, 'params': ['high', 'low', 'close']},
+    'linear_regression': {'func': calculate_linear_regression, 'params': []},
+    'cmo': {'func': calculate_cmo, 'params': ['period']},
+    'dpo': {'func': calculate_dpo, 'params': ['period']},
+    'vol_oscillator': {'func': calculate_vol_oscillator, 'params': ['short_period', 'long_period']},
+    'williams_ad': {'func': calculate_williams_ad, 'params': []},
+    'cci': {'func': calculate_cci, 'params': ['timeperiod']},
+    'pvt': {'func': calculate_pvt, 'params': []},
+    'tmf': {'func': calculate_tmf, 'params': ['timeperiod']},
+    'donchian_channels': {'func': calculate_donchian_channels, 'params': ['n']},
+    'keltner_channels': {'func': calculate_keltner_channels, 'params': ['n']},
+    'atr_bands': {'func': calculate_atr_bands, 'params': ['n']},
+    'elder_ray_index': {'func': calculate_elder_ray_index, 'params': ['n']},
+    'hull_moving_average': {'func': calculate_hull_moving_average, 'params': ['n']},
+    'rainbow_moving_averages': {'func': calculate_rainbow_moving_averages, 'params': ['periods']},
+    'chaikin_money_flow': {'func': calculate_chaikin_money_flow, 'params': ['n']},
+    'chaikin_oscillator': {'func': calculate_chaikin_oscillator, 'params': []},
+    'chaikin_volatility': {'func': calculate_chaikin_volatility, 'params': ['n']},
+     'standard_deviation_channels': {'func': calculate_standard_deviation_channels, 'params': ['n']},
+    'wilder_moving_average': {'func': calculate_wilder_moving_average, 'params': ['n']},
+    'twiggs_momentum_oscillator': {'func': calculate_twiggs_momentum_oscillator, 'params': ['n']},
+    'twiggs_trend_index': {'func': calculate_twiggs_trend_index, 'params': ['n']},
+    'atr_trailing_stops': {'func': calculate_atr_trailing_stops, 'params': ['high', 'low', 'close', 'atr_period', 'multiplier']},
+    'linear_regression': {'func': calculate_linear_regression, 'params': ['window']},
+    'coppock': {'func': calculate_coppock, 'params': ['short_roc_period', 'long_roc_period', 'wma_period']},
+    'kst': {'func': calculate_kst, 'params': ['rc1', 'rc2', 'rc3', 'rc4', 'sma1', 'sma2', 'sma3', 'sma4']},
+    'force_index': {'func': calculate_force_index, 'params': ['period']}
+}
+
+
+
 def calculate_sma(data: pd.DataFrame, period: int) -> pd.Series:
     return ta.SMA(data['Close'], timeperiod=period)
 
