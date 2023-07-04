@@ -1,258 +1,44 @@
-def generate_indicators(data):
-    """
-    Generates technical indicators from market data.
+def calculate_sma(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.SMA(data['Close'], timeperiod=period)
 
-    Args:
-    data (pandas.DataFrame): The market data.
+def calculate_rsi(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.RSI(data['Close'], timeperiod=period)
 
-    Returns:
-    pandas.DataFrame: The market data with additional columns for the technical indicators.
-    """
-    # Generate simple moving averages
-    data['SMA_10'] = ta.SMA(data['Close'], timeperiod=10)
-    data['SMA_50'] = ta.SMA(data['Close'], timeperiod=50)
+def calculate_bbands(data: pd.DataFrame, period: int) -> tuple:
+    upper, middle, lower = ta.BBANDS(data['Close'], timeperiod=period)
+    return upper, middle, lower
 
-    # Generate RSI
-    data['RSI'] = ta.RSI(data['Close'], timeperiod=14)
+def calculate_macd(data: pd.DataFrame, fastperiod: int, slowperiod: int, signalperiod: int) -> tuple:
+    macd, macdsignal, macdhist = ta.MACD(data['Close'], fastperiod=fastperiod, slowperiod=slowperiod, signalperiod=signalperiod)
+    return macd, macdsignal, macdhist
 
-    # Generate Bollinger Bands
-    upper, middle, lower = ta.BBANDS(data['Close'], timeperiod=20)
-    data['BB_upper'] = upper
-    data['BB_middle'] = middle
-    data['BB_lower'] = lower
+def calculate_psar(data: pd.DataFrame, acceleration: float, maximum: float) -> pd.Series:
+    return ta.SAR(data['High'], data['Low'], acceleration=acceleration, maximum=maximum)
 
-    # Calculate Bollinger Band %b
-    data['BB_%b'] = (data['Close'] - lower) / (upper - lower)
+def calculate_trange(data: pd.DataFrame) -> pd.Series:
+    return ta.TRANGE(data['High'], data['Low'], data['Close'])
 
-    # Calculate Bollinger Band Width
-    data['BB_BandWidth'] = (upper - lower) / middle
+def calculate_wma(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.WMA(data['Close'], timeperiod=period)
 
+def calculate_ema(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.EMA(data['Close'], timeperiod=period)
 
-    # Generate MACD
-    macd, macdsignal, macdhist = ta.MACD(data['Close'], fastperiod=12, slowperiod=26, signalperiod=9)
-    data['MACD'] = macd
-    data['MACD_signal'] = macdsignal
-    data['MACD_hist'] = macdhist
-    
-    # Parabolic SAR
-    data['PSAR'] = ta.SAR(data['High'], data['Low'], acceleration=0.02, maximum=0.2)
+def calculate_aroon(data: pd.DataFrame, period: int) -> pd.Series:
+    aroondown, aroonup = ta.AROON(data['High'], data['Low'], timeperiod=period)
+    return aroonup - aroondown
 
-    # True Range
-    data['TRANGE'] = ta.TRANGE(data['High'], data['Low'], data['Close'])
+def calculate_atr(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.ATR(data['High'], data['Low'], data['Close'], timeperiod=period)
 
-    # Weighted Moving Average
-    data['WMA'] = ta.WMA(data['Close'], timeperiod=30)
-    
-    # Exponential Moving Average (EMA)
-    data['EMA'] = ta.EMA(data['Close'], timeperiod=30)
-    
-    # Aroon Oscillator
-    aroondown, aroonup = ta.AROON(data['High'], data['Low'], timeperiod=14)
-    data['Aroon_Oscillator'] = aroonup - aroondown
+def calculate_ad(data: pd.DataFrame) -> pd.Series:
+    return ta.AD(data['High'], data['Low'], data['Close'], data['Volume'])
 
-    # Average True Range (ATR)
-    data['ATR'] = ta.ATR(data['High'], data['Low'], data['Close'], timeperiod=14)
-    
-    # Accumulation Distribution
-    data['AD'] = ta.AD(data['High'], data['Low'], data['Close'], data['Volume'])
+def calculate_adx(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.ADX(data['High'], data['Low'], data['Close'], timeperiod=period)
 
-    # ADX
-    data['ADX'] = ta.ADX(data['High'], data['Low'], data['Close'], timeperiod=14)
-    
-    # Ichimoku Cloud
-    data = data_utils.calculate_ichimoku(data)
-    
-    # Add ATR Trailing Stops to DataFrame
-    data['ATR_Trailing_Stops'] = calculate_atr_trailing_stops(data['High'], data['Low'], data['Close'])
-   
-    # Add Linear Regression and Linear Regression Indicator to DataFrame
-    data = calculate_linear_regression(data)
-    
-    # Chande Momentum Oscillator
-    data['CMO'] = ta.CMO(data['Close'], timeperiod=14)
-    
-    # Detrended Price Oscillator
-    data['DPO'] = ta.DPO(data['Close'], timeperiod=20)
-    
-    # Chande Momentum Oscillator
-    data['CMO'] = ta.CMO(data['Close'], timeperiod=14)
-    
-    # Detrended Price Oscillator
-    data['DPO'] = ta.DPO(data['Close'], timeperiod=20)
-    
-    # Directional Movement Index
-    data['ADX'] = ta.ADX(data['High'], data['Low'], data['Close'], timeperiod=14)
-    data['MINUS_DI'] = ta.MINUS_DI(data['High'], data['Low'], data['Close'], timeperiod=14)
-    data['PLUS_DI'] = ta.PLUS_DI(data['High'], data['Low'], data['Close'], timeperiod=14)
-    
-    # Momentum Indicator
-    data['MOM'] = ta.MOM(data['Close'], timeperiod=10)
-    
-    # TRIX Indicator
-    data['TRIX'] = ta.TRIX(data['Close'], timeperiod=30)
-    
-    # Ultimate Oscillator
-    data['UO'] = ta.ULTOSC(data['High'], data['Low'], data['Close'], timeperiod1=7, timeperiod2=14, timeperiod3=28)
-
-    # Slow Stochastic Oscillator
-    slowk, slowd = ta.STOCH(data['High'], data['Low'], data['Close'], 
-                        fastk_period=5, slowk_period=3, slowk_matype=0, slowd_period=3, slowd_matype=0)
-    
-    data['slowk'] = slowk
-    data['slowd'] = slowd
-    
-    # Smoothed Rate of Change
-    roc = ta.ROC(data['Close'], timeperiod=11)
-    data['SROC'] = ta.WMA(roc, timeperiod=3)
-    
-    # Stochastic Oscillator
-    fastk, fastd = ta.STOCHF(data['High'], data['Low'], data['Close'], 
-                         fastk_period=5, fastd_period=3, fastd_matype=0)
-    data['fastk'] = fastk
-    data['fastd'] = fastd
-    
-    # Rate of Change
-    data['ROC'] = ta.ROC(data['Close'], timeperiod=10)
-    
-    # Stochastic RSI
-    data['STOCH_RSI'] = ta.STOCHRSI(data['Close'], timeperiod=14, fastk_period=5, fastd_period=3, fastd_matype=0)
-    
-    # Twiggs Smoothed Momentum
-    roc = ta.ROC(data['Close'], timeperiod=10)
-    data['Twiggs_Smoothed_Momentum'] = ta.EMA(roc, timeperiod=10)
-    
-    # Williams %R
-    data['Williams_%R'] = ta.WILLR(data['High'], data['Low'], data['Close'], timeperiod=14)
-
-    # Choppiness Index (manually calculated)
-    highest = data['High'].rolling(window=14).max()
-    lowest = data['Low'].rolling(window=14).min()
-
-    ATR = ta.ATR(data['High'], data['Low'], data['Close'], timeperiod=14)
-
-    log_sum = (np.log10(ATR / (highest - lowest))).rolling(window=14).sum()
-
-    data['Choppiness Index'] = 100 * np.exp(-4.6 * log_sum)
-    
-    # Ease of Movement
-    data['EOM'] = ta.EOM(data['High'], data['Low'], data['Close'], volume=data['Volume'], timeperiod=14)
-
-    # Mass Index
-    data['Mass Index'] = ta.MA(data['High'] - data['Low'], timeperiod=9).rolling(window=25).sum() / ta.MA(ta.MA(data['High'] - data['Low'], timeperiod=9), timeperiod=9)
-
-    # Twiggs Volatility (manually calculated)
-    data['Twiggs Volatility'] = ta.MA(np.log10(data['High'] / data['Low']), timeperiod=30)
-
-    # Volatility
-    data['Volatility'] = data['Close'].rolling(window=14).std()
-    
-    # Volatility Ratio (manually calculated)
-    TR = ta.TRANGE(data['High'], data['Low'], data['Close'])
-    ATR = ta.ATR(data['High'], data['Low'], data['Close'], timeperiod=14)
-    data['Volatility Ratio'] = TR / ATR
-    
-    # Money Flow Index
-    data['MFI'] = ta.MFI(data['High'], data['Low'], data['Close'], data['Volume'], timeperiod=14)
-
-    # On Balance Volume
-    data['OBV'] = ta.OBV(data['Close'], data['Volume'])
-    
-    # Volume Oscillator (5 days and 20 days)
-    vol_5 = data['Volume'].rolling(window=5).mean()
-    vol_20 = data['Volume'].rolling(window=20).mean()
-    data['Vol_Oscillator'] = vol_5 - vol_20
-    
-    # Williams Accumulation Distribution
-    data['Williams_AD'] = ta.AD(data['High'], data['Low'], data['Close'], data['Volume'])
-    
-    # Commodity Channel Index
-    data['CCI'] = ta.CCI(data['High'], data['Low'], data['Close'], timeperiod=14)
-    
-    # Price Volume Trend
-    data['PVT'] = (data['Volume'] * (data['Close'].pct_change())).cumsum()
-    
-    # Twiggs Money Flow
-    typical_price = (data['High'] + data['Low'] + data['Close']) / 3
-    prev_typical_price = typical_price.shift(1)
-    money_flow = typical_price - prev_typical_price
-    positive_money_flow = money_flow.copy()
-    positive_money_flow[positive_money_flow < 0] = 0
-    negative_money_flow = -1 * money_flow.copy()
-    negative_money_flow[negative_money_flow < 0] = 0
-    data['TMF'] = ta.SMA(positive_money_flow, 21) - ta.SMA(negative_money_flow, 21)
-    
-    # Ichimoku Cloud
-    data = calculate_ichimoku(data)
-
-    # Donchian Channels
-    data = calculate_donchian_channels(data)
-
-    # Keltner Channels
-    data = calculate_keltner_channels(data)
-
-    # ATR Bands
-    data = calculate_atr_bands(data)
-    
-    # Elder Ray Index
-    n = 13  # or your desired period
-    ema = ta.EMA(data['Close'], timeperiod=n)
-    data['Bull Power'] = data['High'] - ema
-    data['Bear Power'] = data['Low'] - ema
-
-    # Hull Moving Average
-    n = 9  # or your desired period
-    wma_half_length = int(n / 2)
-    sqrt_length = int(np.sqrt(n))
-    wma_half = ta.WMA(data['Close'], timeperiod=wma_half_length)
-    wma_full = ta.WMA(data['Close'], timeperiod=n)
-    data['HMA'] = ta.WMA((2 * wma_half - wma_full) ** 0.5, timeperiod=sqrt_length)
-
-    # Rainbow Moving Averages
-    for i in [10, 20, 30, 40, 50, 100]:  # Add your desired periods
-        data[f'SMA_{i}'] = ta.SMA(data['Close'], timeperiod=i)
-
-    # Chaikin Money Flow
-    n = 20  # or your desired period
-    ad = (2 * data['Close'] - data['High'] - data['Low']) / (data['High'] - data['Low']) * data['Volume']
-    data['CMF'] = ta.SMA(ad, timeperiod=n) / ta.SMA(data['Volume'], timeperiod=n)
-
-    # Chaikin Oscillator
-    ad_line = ta.AD(data['High'], data['Low'], data['Close'], data['Volume'])
-    data['Chaikin_Oscillator'] = ta.EMA(ad_line, timeperiod=3) - ta.EMA(ad_line, timeperiod=10)
-
-    # Add Chaikin Volatility
-    data = calculate_chaikin_volatility(data)
-
-    # Add Standard Deviation Channels
-    data = calculate_standard_deviation_channels(data)
-
-    # Add Wilder's Moving Average
-    data = calculate_wilder_moving_average(data)
-
-    # Add Twiggs Momentum Oscillator
-    data = calculate_twiggs_momentum_oscillator(data)
-
-    # Add Twiggs Trend Index
-    data = calculate_twiggs_trend_index(data)
-    
-    
-    # Add ATR Trailing Stops
-    data['ATR_Trailing_Stops'] = calculate_atr_trailing_stops(data['High'], data['Low'], data['Close'])
-
-    # Add Linear Regression and Linear Regression Indicator
-    data = calculate_linear_regression(data)
-
-    # Add Coppock Curve
-    data = calculate_coppock(data)
-
-    # Add KST Indicator
-    data = calculate_kst(data)
-
-    # Add Force Index
-    data = calculate_force_index(data)
-
-    return data
-
+def calculate_ichimoku(data: pd.DataFrame) -> pd.DataFrame:
+    return data_utils.calculate_ichimoku(data)
 
 def calculate_ichimoku(data):
     high_prices = data['High']
@@ -281,6 +67,136 @@ def calculate_ichimoku(data):
     data['chikou_span'] = close_prices.shift(-26)
 
     return data
+
+def calculate_atr_trailing_stops(high: pd.Series, low: pd.Series, close: pd.Series) -> pd.Series:
+    # TODO: Implement this function. TA-Lib doesn't have this function. 
+    pass
+
+def calculate_linear_regression(data: pd.DataFrame) -> pd.DataFrame:
+    # TODO: Implement this function. TA-Lib doesn't have this function. 
+    pass
+
+def calculate_cmo(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.CMO(data['Close'], timeperiod=period)
+
+def calculate_dpo(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.DPO(data['Close'], timeperiod=period)
+
+def calculate_minus_di(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.MINUS_DI(data['High'], data['Low'], data['Close'], timeperiod=period)
+
+def calculate_plus_di(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.PLUS_DI(data['High'], data['Low'], data['Close'], timeperiod=period)
+
+def calculate_mom(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.MOM(data['Close'], timeperiod=period)
+
+def calculate_trix(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.TRIX(data['Close'], timeperiod=period)
+
+def calculate_ultosc(data: pd.DataFrame, timeperiod1: int, timeperiod2: int, timeperiod3: int) -> pd.Series:
+    return ta.ULTOSC(data['High'], data['Low'], data['Close'], timeperiod1=timeperiod1, timeperiod2=timeperiod2, timeperiod3=timeperiod3)
+
+def calculate_stoch(data: pd.DataFrame, fastk_period: int, slowk_period: int, slowd_period: int) -> tuple:
+    slowk, slowd = ta.STOCH(data['High'], data['Low'], data['Close'], fastk_period=fastk_period, slowk_period=slowk_period, slowk_matype=0, slowd_period=slowd_period, slowd_matype=0)
+    return slowk, slowd
+
+def calculate_sroc(data: pd.DataFrame, roc_period: int, wma_period: int) -> pd.Series:
+    roc = ta.ROC(data['Close'], timeperiod=roc_period)
+    return ta.WMA(roc, timeperiod=wma_period)
+
+def calculate_stochf(data: pd.DataFrame, fastk_period: int, fastd_period: int) -> tuple:
+    fastk, fastd = ta.STOCHF(data['High'], data['Low'], data['Close'], fastk_period=fastk_period, fastd_period=fastd_period, fastd_matype=0)
+    return fastk, fastd
+
+def calculate_roc(data: pd.DataFrame, period: int) -> pd.Series:
+    return ta.ROC(data['Close'], timeperiod=period)
+
+def calculate_stoch_rsi(data: pd.DataFrame, timeperiod: int, fastk_period: int, fastd_period: int) -> pd.Series:
+    return ta.STOCHRSI(data['Close'], timeperiod=timeperiod, fastk_period=fastk_period, fastd_period=fastd_period, fastd_matype=0)
+
+def calculate_twiggs_smoothed_momentum(data: pd.DataFrame, roc_period: int, ema_period: int) -> pd.Series:
+    roc = ta.ROC(data['Close'], timeperiod=roc_period)
+    return ta.EMA(roc, timeperiod=ema_period)
+
+def calculate_williams_percent_r(data: pd.DataFrame, timeperiod: int) -> pd.Series:
+    return ta.WILLR(data['High'], data['Low'], data['Close'], timeperiod=timeperiod)
+
+def calculate_choppiness_index(data: pd.DataFrame, timeperiod: int = 14) -> pd.Series:
+    highest = data['High'].rolling(window=timeperiod).max()
+    lowest = data['Low'].rolling(window=timeperiod).min()
+
+    atr = ta.ATR(data['High'], data['Low'], data['Close'], timeperiod=timeperiod)
+    log_sum = np.log10(atr / (highest - lowest)).rolling(window=timeperiod).sum()
+
+    choppiness_index = 100 * np.exp(-4.6 * log_sum)
+
+    return choppiness_index
+
+def calculate_eom(data: pd.DataFrame, volume: pd.Series, timeperiod: int) -> pd.Series:
+    return ta.EOM(data['High'], data['Low'], data['Close'], volume=volume, timeperiod=timeperiod)
+
+def calculate_mass_index(data: pd.DataFrame, ema_period: int = 9, sum_period: int = 25) -> pd.Series:
+    high_low_diff = data['High'] - data['Low']
+    ema1 = ta.EMA(high_low_diff, timeperiod=ema_period)
+    ema2 = ta.EMA(ema1, timeperiod=ema_period)
+
+    mass_index = ema1 / ema2
+    mass_index = mass_index.rolling(window=sum_period).sum()
+
+    return mass_index
+
+def calculate_twiggs_volatility(data: pd.DataFrame, timeperiod: int = 30) -> pd.Series:
+    twiggs_volatility = np.log10(data['High'] / data['Low'])
+    twiggs_volatility = ta.EMA(twiggs_volatility, timeperiod=timeperiod)
+
+    return twiggs_volatility
+
+def calculate_volatility(data: pd.DataFrame, timeperiod: int) -> pd.Series:
+    return data['Close'].rolling(window=timeperiod).std()
+
+def calculate_volatility_ratio(data: pd.DataFrame, timeperiod: int = 14) -> pd.Series:
+    tr = ta.TRANGE(data['High'], data['Low'], data['Close'])
+    atr = ta.ATR(data['High'], data['Low'], data['Close'], timeperiod=timeperiod)
+
+    volatility_ratio = tr / atr
+
+    return volatility_ratio
+
+def calculate_mfi(data: pd.DataFrame, timeperiod: int) -> pd.Series:
+    return ta.MFI(data['High'], data['Low'], data['Close'], data['Volume'], timeperiod=timeperiod)
+
+def calculate_obv(data: pd.DataFrame) -> pd.Series:
+    return ta.OBV(data['Close'], data['Volume'])
+
+def calculate_vol_oscillator(data: pd.DataFrame, short_period: int = 5, long_period: int = 20) -> pd.Series:
+    vol_short = data['Volume'].rolling(window=short_period).mean()
+    vol_long = data['Volume'].rolling(window=long_period).mean()
+
+    vol_oscillator = vol_short - vol_long
+
+    return vol_oscillator
+
+def calculate_williams_ad(data: pd.DataFrame) -> pd.Series:
+    return ta.AD(data['High'], data['Low'], data['Close'], data['Volume'])
+
+def calculate_cci(data: pd.DataFrame, timeperiod: int) -> pd.Series:
+    return ta.CCI(data['High'], data['Low'], data['Close'], timeperiod=timeperiod)
+
+def calculate_pvt(data: pd.DataFrame) -> pd.Series:
+    return (data['Volume'] * (data['Close'].pct_change())).cumsum()
+
+def calculate_tmf(data: pd.DataFrame, timeperiod: int = 21) -> pd.Series:
+    typical_price = (data['High'] + data['Low'] + data['Close']) / 3
+    prev_typical_price = typical_price.shift(1)
+    money_flow = typical_price - prev_typical_price
+    positive_money_flow = money_flow.copy()
+    positive_money_flow[positive_money_flow < 0] = 0
+    negative_money_flow = -1 * money_flow.copy()
+    negative_money_flow[negative_money_flow < 0] = 0
+
+    tmf = ta.SMA(positive_money_flow, timeperiod) - ta.SMA(negative_money_flow, timeperiod)
+    return tmf
 
 def calculate_donchian_channels(data, n=20):
     """
@@ -414,7 +330,7 @@ def calculate_rainbow_moving_averages(data, periods=[5, 10, 15, 20, 30, 40, 50, 
         data[f'SMA_{i}'] = data['Close'].rolling(window=i).mean()
 
     return data
-
+    
 def calculate_chaikin_money_flow(data, n=20):
     """
     Calculates the Chaikin Money Flow.
@@ -537,7 +453,7 @@ def calculate_twiggs_trend_index(data, n=21):
     data['TTI'] = (data['Close'] - data['Close_EMA']) / data['Close_EMA']
 
     return data
-
+ 
 def calculate_atr_trailing_stops(high, low, close, atr_period=14, multiplier=3):
     """
     Calculate Average True Range (ATR) Trailing Stops.
@@ -583,25 +499,6 @@ def calculate_linear_regression(data, window=14):
 
     # Calculate the linear regression indicator
     data['LR_Indicator'] = data['Close'] - data['LR']
-
-    return data
-
-def calculate_coppock(data, short_roc_period=11, long_roc_period=14, wma_period=10):
-    """
-    Calculate the Coppock Curve.
-
-    Args:
-        data (pandas.DataFrame): The market data.
-        short_roc_period (int): The period for the shorter Rate-of-Change.
-        long_roc_period (int): The period for the longer Rate-of-Change.
-        wma_period (int): The period for the Weighted Moving Average.
-
-    Returns:
-        pandas.DataFrame: The market data with additional column for the Coppock Curve.
-    """
-    roc_short = data['Close'].pct_change(periods=short_roc_period)
-    roc_long = data['Close'].pct_change(periods=long_roc_period)
-    data['Coppock'] = (roc_short + roc_long).rolling(window=wma_period).mean()
 
     return data
 

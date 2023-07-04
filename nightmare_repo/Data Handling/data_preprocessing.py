@@ -21,9 +21,6 @@ def preprocess_data(filename):
     # Normalize the data
     scaler = StandardScaler()
     data = pd.DataFrame(scaler.fit_transform(data), columns=data.columns, index=data.index)
-    
-    # Generate technical indicators
-    data = generate_indicators(data)
 
     # Save the preprocessed data to a new CSV file
     data.to_csv('preprocessed_' + filename)

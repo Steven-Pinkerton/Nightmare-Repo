@@ -14,7 +14,12 @@ def download_data(ticker, start_date, end_date, period='1d'):
     pandas.DataFrame: the historical market data for the given ticker and date range.
     """
     # Download historical data as a pandas DataFrame
-    data = yf.download(ticker, start=start_date, end=end_date, interval=period)
+        # Download historical data as a pandas DataFrame
+    try:
+        data = yf.download(ticker, start=start_date, end=end_date, interval=period)
+    except Exception as e:
+        print(f"Error occurred while trying to download data for {ticker}: {e}")
+        return None
     
     return data
 
@@ -27,7 +32,10 @@ def save_data(data, filename):
     data (pandas.DataFrame): the DataFrame to save.
     filename (str): the name of the CSV file.
     """
-    data.to_csv(filename)
+    try:
+        data.to_csv(filename)
+    except Exception as e:
+        print(f"Error occurred while trying to save data to {filename}: {e}")
 
 
 if __name__ == "__main__":
