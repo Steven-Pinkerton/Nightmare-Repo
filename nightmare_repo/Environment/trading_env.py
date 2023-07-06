@@ -74,6 +74,7 @@ class TradingEnvironment:
         actions = self.define_action_space()
 
         # Calculate max_action
+        # For each stock, there are 4 possible actions (Buy, Sell, Hold, Change Settings) and 10 possible percentages
         max_action = len(self.market_data.columns) * len(actions) * len(percentages)
 
         return max_action
