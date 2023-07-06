@@ -34,13 +34,12 @@ class Memory(nn.Module):
         # Initialize memory matrix with zeros
         self.memory = nn.Parameter(torch.zeros(N, M))
 
-        def read(self, ws):
-            # `ws` is a list of read weight vectors
-            return [torch.matmul(w.unsqueeze(1), self.memory).squeeze(1) for w in ws]
+    def read(self, ws):
+         # `ws` is a list of read weight vectors
+        return [torch.matmul(w.unsqueeze(1), self.memory).squeeze(1) for w in ws]
 
     def write(self, ws, es, as):
-        # `ws`, `es`, and `as` are lists of write weight, erase, and add vectors respectively
-        for w, e, a in zip (ws, es, as):
+        for w, e, a in zip(ws, es, as):
             self.memory = self.memory * (1 - torch.matmul(w.unsqueeze(-1), e.unsqueeze(1)))
             self.memory = self.memory + torch.matmul(w.unsqueeze(-1), a.unsqueeze(1))
 
@@ -87,18 +86,29 @@ class InterfaceVectors(nn.Module):
     def forward(self, x):
         iv = self.linear(x)
         read_vectors, write_vectors = self.split_interface_vector(iv, num_heads=self.num_heads)
-        read_ws = [self.addressing(w) for w in read_vectors]
-        write_ws = [self.addressing(w) for w in write_vectors]
         
-        self.write(write_ws, [e for e, _ in write_vectors], [a for _, a in write_vectors])  # Perform write operation
+        # Calculate write weights
+        write_ws = [self.addressing(*w) for w in write_vectors]
+        
+        # Perform write operation
+        self.memory.write(write_ws, [e for e, _ in write_vectors], [a for _, a in write_vectors])  
         self.memory.update_linkage_matrix(write_ws)  # Update the Temporal Linkage Matrix
+        
+        # Calculate read weights
+        read_ws = [self.addressing(*w) for w in read_vectors]
 
-        # Add TLM's contribution in read operation
+        # Now combine the read weights with the forward (and optionally, backward) weights from TLM
+        # and perform read operation
+        read_data = []
         for w in read_ws:
-            forward_weights, backward_weights = self.memory.read_linkage_matrix(w)  # Read from the Temporal Linkage Matrix
-            # You might need to combine these weights with the content and location-based addressing weights
+            forward_weights, backward_weights = self.memory.read_linkage_matrix(w)
             
-        read_data = [self.read(w) for w in read_ws]  # Read data for each head
+            # Hyperparameters alpha and beta determine the balance between original weights and TLM weights
+            alpha, beta = 0.5, 0.5  # These can be set manually or learned during training
+            w_combined = alpha * w + beta * forward_weights  # Combine weights
+
+            read_data.append(self.memory.read(w_combined))  # Read data using the combined weights
+
         return read_data  # Return the read data as a list
 
     def split_interface_vector(self, iv, num_heads):
@@ -177,3 +187,7 @@ class TemporalLinkageMatrix(nn.Module):
         wb = torch.matmul(w, self.matrix.t())
 
         return wf, wb
+    
+    def reset(self):
+        self.matrix.data.fill_(0)
+        self.precedence_weight.data.fill_(0)
