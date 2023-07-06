@@ -156,8 +156,6 @@ class TradingEnvironment:
         # Define a discrete action space
         self.action_space = ['Buy', 'Sell', 'Hold', 'Change Settings']
         return self.action_space
-    
-    # With the above, each "Buy" or "Sell" action would need to be followed by an action specifying the percentage to buy or sell, or you could simplify this by having fixed percentage actions like "Buy 10%", "Sell 10%", etc.
 
     def step(self, action):
         # Copy the current portfolio value
