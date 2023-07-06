@@ -192,7 +192,7 @@ class TradingEnvironment:
         reward = self.calculate_reward()
 
         # Check if the episode has ended
-        done = self.current_step >= len(self.market_data)
+        done = self.current_step >= len(self.market_data) or self.cash_balance <= 0
 
         return self.state, reward, done
 
@@ -201,7 +201,7 @@ class TradingEnvironment:
         self.state = self.initialize_state()
         self.current_step = 0
         self.portfolio = {}
-        self.balance = self.initial_balance
+        self.cash_balance = self.initial_cash_balance
         self.buy_prices = {}
         self.sell_prices = {}
         self.winning_trades = 0
@@ -357,7 +357,6 @@ class TradingEnvironment:
             else:
                 print(f"Warning: Indicator '{indicator_name}' is not defined. Skipping.")
                 
-
     def run_episode(self):
         self.env.reset()  # reset the environment to its initial state at the start of an episode
         done = False  # flag to track if the episode has ended
