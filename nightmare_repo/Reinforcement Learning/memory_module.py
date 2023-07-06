@@ -191,3 +191,54 @@ class TemporalLinkageMatrix(nn.Module):
     def reset(self):
         self.matrix.data.fill_(0)
         self.precedence_weight.data.fill_(0)
+
+class DynamicMemory(nn.Module):
+    def __init__(self, N, M, controller_size):
+        super(DynamicMemory, self).__init__()
+
+        self.N = N
+        self.M = M
+        self.controller_size = controller_size
+
+        # Initialize memory matrix with zeros
+        self.memory = nn.Parameter(torch.zeros(N, M))
+
+        # Initialize allocation gate
+        self.alloc_gate = nn.Sequential(
+            nn.Linear(controller_size, 1),
+            nn.Sigmoid()
+        )
+
+    def read(self, ws):
+        # `ws` is a list of read weight vectors
+        return [torch.matmul(w.unsqueeze(1), self.memory[:self._get_memory_size()]).squeeze(1) for w in ws]
+
+    def write(self, ws, es, as):
+        # `ws`, `es`, and `as` are lists of write weight, erase, and add vectors respectively
+        for w, e, a in zip(ws, es, as):
+            self.memory[:self._get_memory_size()] = self.memory[:self._get_memory_size()] * (1 - torch.matmul(w.unsqueeze(-1), e.unsqueeze(1)))
+            self.memory[:self._get_memory_size()] = self.memory[:self._get_memory_size()] + torch.matmul(w.unsqueeze(-1), a.unsqueeze(1))
+
+    def reset(self):
+        # Resets memory to all zeros
+        self.memory.data.fill_(0)
+
+    def _get_memory_size(self):
+        # Get the current memory size based on the allocation gate
+        return int(self.N * self.alloc_gate(self.controller_size))
+
+    def adjust_memory_size(self, memory_requirement):
+        current_size = self.memory.size(0)
+        if memory_requirement > current_size:
+            self.expand_memory(memory_requirement - current_size)
+        elif memory_requirement < current_size:
+            self.shrink_memory(current_size - memory_requirement)
+
+    def expand_memory(self, size_increase):
+        # Expanding the memory
+        expanded_memory = torch.zeros(size_increase, self.M)
+        self.memory = nn.Parameter(torch.cat([self.memory, expanded_memory], dim=0))
+
+    def shrink_memory(self, size_decrease):
+        # Shrinking the memory
+        self.memory = nn.Parameter(self.memory[:-size_decrease])
