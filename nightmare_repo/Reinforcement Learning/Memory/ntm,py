@@ -1,0 +1,76 @@
+import torch
+from torch import nn
+
+class NTMController(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, output_size):
+
+        super(NTMController, self).__init__()
+
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+
+        self.lstm = nn.LSTM(input_size=input_size,
+                            hidden_size=hidden_size,
+                            num_layers=num_layers,
+                            batch_first=True)
+        # A fully connected layer that maps the LSTM's hidden states to the output size
+        self.fc = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+
+        lstm_output, state = self.lstm(x)  # Return the LSTM state as well
+        output = self.fc(lstm_output[:, -1, :])
+        return output, state  # Return both the output and the state
+    
+class NTMMemory(nn.Module):
+
+    def __init__(self, N, M):
+        """
+        Initialize the Memory module.
+
+        Args:
+            N (int): The number of memory slots.
+            M (int): The dimensionality of each memory slot.
+        """
+        super(Memory, self).__init__()
+        self.N = N  # The number of memory slots
+        self.M = M  # The dimensionality of each memory slot
+
+        # Initialize memory to small random values
+        # The memory matrix is of size (N, M), where N is the number of memory slots and M is the size of each memory slot.
+        self.memory = torch.randn((N, M)) / np.sqrt(N + M)
+
+    def read(self, read_weights):
+        """
+        Read from memory. This operation uses the read weights to form a weighted sum of the memory contents.
+
+        Args:
+            read_weights (torch.Tensor): The read weights, a tensor of shape (N,) that sum to 1.
+            
+        Returns:
+            torch.Tensor: The result of the read operation, a tensor of shape (M,).
+        """
+        return torch.matmul(read_weights, self.memory)  # Return weighted sum of memory contents
+
+    def write(self, write_weights, erase_vector, add_vector):
+        """
+        Write to memory. The write operation first erases content from memory based on the erase vector,
+        then adds new content based on the add vector.
+
+        Args:
+            write_weights (torch.Tensor): The write weights, a tensor of shape (N,) that sum to 1.
+            erase_vector (torch.Tensor): The erase vector, a tensor of shape (M,).
+            add_vector (torch.Tensor): The add vector, a tensor of shape (M,).
+        """
+        # Erase operation. The outer product of write weights and erase vector is subtracted from memory.
+        self.memory = self.memory * (1 - torch.ger(write_weights, erase_vector))  
+        
+        # Add operation. The outer product of write weights and add vector is added to memory.
+        self.memory = self.memory + torch.ger(write_weights, add_vector)
+
+    def reset(self):
+        """
+        Reset memory. This operation re-initializes the memory matrix to small random values.
+        """
+        self.memory = torch.randn((self.N, self.M)) / np.sqrt(self.N + self.M)
